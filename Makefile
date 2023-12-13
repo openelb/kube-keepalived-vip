@@ -8,7 +8,7 @@ CHART_VERSION = 1.0.0
 PREFIX = aledbf/kube-keepalived-vip
 BUILD_IMAGE = build-keepalived
 PKG = ./
-KeepalivedVersion = 2.2.10
+KeepalivedVersion = 2.2.8
 
 GO_LIST_FILES=$(shell go list ${PKG}/... | grep -v vendor)
 
