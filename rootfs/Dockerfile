@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM quay.io/kubernetes-ingress-controller/debian-base-amd64:0.1
+FROM  debian:10.13
 
-RUN clean-install \
+ADD keepalived.tar.gz /
+COPY . /
+
+RUN apt update && apt install -y \
   libssl1.1 \
   libnl-3-200 \
   libnl-route-3-200 \
@@ -33,14 +36,10 @@ RUN clean-install \
   ipvsadm \
   bash \
   jq \
-  dumb-init
-
-ADD keepalived.tar.gz /
-
-RUN mkdir -p /etc/keepalived && \
-  ln -s /keepalived/sbin/keepalived /usr/sbin && \
-  ln -s /keepalived/bin/genhash /usr/sbin
-
-COPY . /
+  dumb-init \
+  procps \
+  && mkdir -p /etc/keepalived  \
+  && ln -s /keepalived/sbin/keepalived /usr/sbin  \
+  && ln -s /keepalived/bin/genhash /usr/sbin
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/kube-keepalived-vip"]
