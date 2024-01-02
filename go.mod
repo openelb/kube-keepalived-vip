@@ -1,6 +1,6 @@
-module kube-keepalived-vip
+module github.com/openelb/kube-keepalived-vip
 
-go 1.21.5
+go 1.21
 
 require (
 	golang.org/x/sys v0.13.0

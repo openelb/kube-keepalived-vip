@@ -40,8 +40,7 @@ apt-get update && apt-get dist-upgrade -y \
 cd /tmp || exit 1
 
 # download, verify and extract the source files
-get_src "https://github.com/acassen/keepalived/archive/refs/tags/v${KeepalivedVersion}.tar.gz"
-
+get_src "https://github.com/acassen/keepalived/archive/refs/tags/v${VERSION}.tar.gz"
 cd keepalived-$VERSION
 
 aclocal

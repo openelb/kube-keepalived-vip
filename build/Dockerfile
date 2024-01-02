@@ -19,6 +19,4 @@ ARG VERSION
 
 ENV VERSION $VERSION
 
-RUN clean-install bash
-
 RUN /build.sh

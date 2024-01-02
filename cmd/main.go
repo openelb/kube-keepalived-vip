@@ -19,19 +19,17 @@ package main
 import (
 	"flag"
 	"fmt"
-	"k8s.io/klog"
-	"k8s.io/utils/exec"
-
-	"kube-keepalived-vip/pkg/sysctl"
 	"os"
 
+	"github.com/openelb/kube-keepalived-vip/pkg/controller"
+	"github.com/openelb/kube-keepalived-vip/pkg/sysctl"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-
-	"kube-keepalived-vip/pkg/controller"
+	"k8s.io/klog"
+	"k8s.io/utils/exec"
 )
 
 var (

@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"k8s.io/klog/v2"
-	"kube-keepalived-vip/pkg/iptables"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/openelb/kube-keepalived-vip/pkg/iptables"
+	"k8s.io/klog/v2"
 )
 
 const (

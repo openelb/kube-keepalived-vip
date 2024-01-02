@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"kube-keepalived-vip/pkg/iptables"
+	"github.com/openelb/kube-keepalived-vip/pkg/iptables"
 )
 
 const (
