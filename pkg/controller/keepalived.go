@@ -1,18 +1,37 @@
+/*
+Copyright 2015 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controller
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/openelb/kube-keepalived-vip/pkg/iptables"
-	"html/template"
 	"io/ioutil"
-	"k8s.io/klog/v2"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
+	"text/template"
 	"time"
+
+	"github.com/golang/glog"
+
+	"k8s.io/kubernetes/pkg/util/iptables"
+	k8sexec "k8s.io/utils/exec"
 )
 
 const (
@@ -76,9 +95,10 @@ func (k *keepalived) WriteCfg(svcs []vip) error {
 	conf["vipIsEmpty"] = len(k.vips) == 0
 	conf["notify"] = k.notify
 
-	b, _ := json.Marshal(conf)
-
-	klog.V(2).Infof("%v", string(b))
+	if glog.V(2) {
+		b, _ := json.Marshal(conf)
+		glog.Infof("%v", string(b))
+	}
 
 	err = k.keepalivedTmpl.Execute(w, conf)
 	if err != nil {
@@ -116,10 +136,10 @@ func getVIPs(svcs []vip) []string {
 func (k *keepalived) Start() {
 	ae, err := k.ipt.EnsureChain(iptables.TableFilter, iptables.Chain(iptablesChain))
 	if err != nil {
-		klog.Fatalf("unexpected error: %v", err)
+		glog.Fatalf("unexpected error: %v", err)
 	}
 	if ae {
-		klog.V(2).Infof("chain %v already existed", iptablesChain)
+		glog.V(2).Infof("chain %v already existed", iptablesChain)
 	}
 
 	args := []string{"--dont-fork", "--log-console", "--log-detail"}
@@ -140,18 +160,18 @@ func (k *keepalived) Start() {
 	k.started = true
 
 	if err := k.cmd.Run(); err != nil {
-		klog.Fatalf("Error starting keepalived: %v", err)
+		glog.Fatalf("Error starting keepalived: %v", err)
 	}
 }
 
 // Reload sends SIGHUP to keepalived to reload the configuration.
 func (k *keepalived) Reload() error {
-	klog.Info("Waiting for keepalived to start")
+	glog.Info("Waiting for keepalived to start")
 	for !k.IsRunning() {
 		time.Sleep(time.Second)
 	}
 
-	klog.Info("reloading keepalived")
+	glog.Info("reloading keepalived")
 	err := syscall.Kill(k.cmd.Process.Pid, syscall.SIGHUP)
 	if err != nil {
 		return fmt.Errorf("error reloading keepalived: %v", err)
@@ -163,12 +183,12 @@ func (k *keepalived) Reload() error {
 // Whether keepalived process is currently running
 func (k *keepalived) IsRunning() bool {
 	if !k.started {
-		klog.Error("keepalived not started")
+		glog.Error("keepalived not started")
 		return false
 	}
 
 	if _, err := os.Stat(keepalivedPid); os.IsNotExist(err) {
-		klog.Error("Missing keepalived.pid")
+		glog.Error("Missing keepalived.pid")
 		return false
 	}
 
@@ -211,7 +231,7 @@ func (k *keepalived) Healthy() error {
 	}
 
 	ips := out.String()
-	klog.V(3).Infof("Status of %s interface: %s", state, ips)
+	glog.V(3).Infof("Status of %s interface: %s", state, ips)
 
 	for _, vip := range k.vips {
 		containsVip := strings.Contains(ips, fmt.Sprintf(" %s/32 ", vip))
@@ -228,14 +248,14 @@ func (k *keepalived) Healthy() error {
 }
 
 func (k *keepalived) Cleanup() {
-	klog.Infof("Cleanup: %s", k.vips)
+	glog.Infof("Cleanup: %s", k.vips)
 	for _, vip := range k.vips {
 		k.removeVIP(vip)
 	}
 
 	err := k.ipt.FlushChain(iptables.TableFilter, iptables.Chain(iptablesChain))
 	if err != nil {
-		klog.V(2).Infof("unexpected error flushing iptables chain %v: %v", err, iptablesChain)
+		glog.V(2).Infof("unexpected error flushing iptables chain %v: %v", err, iptablesChain)
 	}
 }
 
@@ -245,15 +265,15 @@ func (k *keepalived) Stop() {
 
 	err := syscall.Kill(k.cmd.Process.Pid, syscall.SIGTERM)
 	if err != nil {
-		klog.Errorf("error stopping keepalived: %v", err)
+		glog.Errorf("error stopping keepalived: %v", err)
 	}
 }
 
 func (k *keepalived) removeVIP(vip string) {
-	klog.Infof("removing configured VIP %v", vip)
-	out, err := exec.Command("ip", "addr", "del", vip+"/32", "dev", k.iface).CombinedOutput()
+	glog.Infof("removing configured VIP %v", vip)
+	out, err := k8sexec.New().Command("ip", "addr", "del", vip+"/32", "dev", k.iface).CombinedOutput()
 	if err != nil {
-		klog.V(2).Infof("Error removing VIP %s: %v\n%s", vip, err, out)
+		glog.V(2).Infof("Error removing VIP %s: %v\n%s", vip, err, out)
 	}
 }
 

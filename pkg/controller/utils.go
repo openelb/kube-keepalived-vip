@@ -1,17 +1,35 @@
+/*
+Copyright 2015 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controller
 
 import (
-	"context"
 	"fmt"
-	"github.com/openelb/kube-keepalived-vip/pkg/k8s"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 	"net"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/golang/glog"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/aledbf/kube-keepalived-vip/pkg/k8s"
 )
 
 var (
@@ -47,7 +65,7 @@ func netInterfaces() ([]net.Interface, error) {
 	validIfaces := []net.Interface{}
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		klog.Errorf("unexpected error obtaining network interfaces: %v", err)
+		glog.Errorf("unexpected error obtaining network interfaces: %v", err)
 		return validIfaces, err
 	}
 
@@ -59,7 +77,7 @@ func netInterfaces() ([]net.Interface, error) {
 		}
 	}
 
-	klog.V(2).Infof("network interfaces: %+v", validIfaces)
+	glog.V(2).Infof("network interfaces: %+v", validIfaces)
 	return validIfaces, nil
 }
 
@@ -138,14 +156,14 @@ func getClusterNodesIP(kubeClient *kubernetes.Clientset, nodeSelector string) (c
 	if nodeSelector != "" {
 		label, err := labels.Parse(nodeSelector)
 		if err != nil {
-			klog.Fatalf("'%v' is not a valid selector: %v", nodeSelector, err)
+			glog.Fatalf("'%v' is not a valid selector: %v", nodeSelector, err)
 		}
 		listOpts.LabelSelector = label.String()
 	}
 
-	nodes, err := kubeClient.CoreV1().Nodes().List(context.Background(), listOpts)
+	nodes, err := kubeClient.CoreV1().Nodes().List(listOpts)
 	if err != nil {
-		klog.Fatalf("Error getting running nodes: %v", err)
+		glog.Fatalf("Error getting running nodes: %v", err)
 	}
 
 	for _, nodo := range nodes.Items {
