@@ -15,46 +15,39 @@
 # limitations under the License.
 
 
-set -o pipefail
-
 get_src()
 {
-  hash="$1"
-  url="$2"
+  url="$1"
   f=$(basename "$url")
 
   curl -sSL "$url" -o "$f"
-  echo "$hash  $f" | sha256sum -c - || exit 10
+
   tar xzf "$f"
   rm -rf "$f"
 }
 
-apt-get update && apt-get dist-upgrade -y
-
-clean-install \
+apt-get update && apt-get dist-upgrade -y \
   curl \
   gcc \
   libssl-dev \
-  libnl-3-dev libnl-route-3-dev libnl-genl-3-dev iptables-dev libnfnetlink-dev libiptcdata0-dev \
+  libnl-3-dev libnl-route-3-dev libnl-genl-3-dev libxtables-dev libnfnetlink-dev libiptcdata0-dev \
   make \
   libipset-dev \
-  git \
   libsnmp-dev \
   automake \
   ca-certificates
 
-cd /tmp
+cd /tmp || exit 1
 
 # download, verify and extract the source files
-get_src $SHA256 \
-  "https://github.com/acassen/keepalived/archive/v$VERSION.tar.gz"
-
-cd keepalived-$VERSION
+get_src "https://github.com/acassen/keepalived/archive/refs/tags/v${KeepalivedVersion}.tar.gz"
+cd keepalived-${KeepalivedVersion} || exit 1
 
 aclocal
+autoreconf -i
 autoheader
 automake --add-missing
-autoreconf
+
 
 ./configure --prefix=/keepalived \
   --sysconfdir=/etc \

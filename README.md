@@ -379,7 +379,8 @@ BODY:
 - chart-subst: This target generates `Chart.yaml` and `values.yaml` from the templates. After this the chart is ready and the directory could be referenced directly for use with `helm install` or `helm upgrade`.
 - chart: This target generates a Helm package located at `chart/kube-keepalived-X.Y.Z.tgz`. This target requires Helm to be installed.
 
-The chart supports both the normal mode of operation and the mode with PROXY protocol support via HAProxy.  It has been tested on Kubernetes 1.8 and 1.9.
+The chart supports both the normal mode of operation and the mode with PROXY protocol support via HAProxy. It has been
+tested on Kubernetes 1.21 and 1.23.
 
 ## Related projects
 
