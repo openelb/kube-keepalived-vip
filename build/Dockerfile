@@ -15,9 +15,9 @@
 FROM debian:10.13
 
 COPY build.sh /build.sh
-ARG VERSION
+ARG KeepalivedVersion
 
-ENV VERSION $VERSION
+ENV KeepalivedVersion $KeepalivedVersion
 
 RUN clean-install bash
 
