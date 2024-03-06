@@ -12,10 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Build
+FROM golang:1.21 as build_context
+
+ENV OUTDIR=/out
+RUN mkdir -p ${OUTDIR}/usr/local/bin/
+
+WORKDIR /workspace
+ADD . /workspace/
+
+RUN make binary
+RUN mv /workspace/bin/cmd/kube-keepalived-vip ${OUTDIR}/kube-keepalived-vip
+
+
+
+##############
+# Final image
+#############
+FROM rykren/build-keepalived:2.2.8 as keepalived
 FROM  debian:10.13
 
-ADD keepalived.tar.gz /
-COPY . /
+COPY --from=build_context /out/kube-keepalived-vip /
+COPY --from=keepalived  /keepalived/ /keepalived/
+COPY build/kube-keepalived /
 
 RUN apt update && apt install -y \
   libssl1.1 \

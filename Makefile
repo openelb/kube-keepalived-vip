@@ -1,32 +1,43 @@
-all: push
+all: container-cross-push
 
 # 0.0 shouldn't clobber any release builds
-REPO ?= kubesphere
 TAG ?= latest
 HAPROXY_TAG = 0.1
 # Helm uses SemVer2 versioning
 CHART_VERSION = 1.0.0
-BUILD_IMAGE = build-keepalived
-PKG = github.com/openelb/kube-keepalived-vip
-KeepalivedVersion = 2.2.8
 
-GO_LIST_FILES=$(shell go list ${PKG}/... | grep -v vendor)
 
-controller: clean
-	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-s -w' -trimpath -o rootfs/kube-keepalived-vip ./cmd
+binary: 
+	hack/gobuild.sh cmd/kube-keepalived-vip
 
-container: controller keepalived
-	docker build -t $(REPO)/kube-keepalived-vip:$(TAG) -o type=docker rootfs
+# build kube-keepalived-vip in docker
+container: ;$(info $(M)...Begin to build the docker image.)  @ ## Build the docker image.
+	DRY_RUN=true hack/docker_build.sh
 
+container-push: ;$(info $(M)...Begin to build and push.)  @ ## Build and Push.
+	hack/docker_build.sh
+
+container-cross: ; $(info $(M)...Begin to build container images for multiple platforms.)  @ ## Build container images for multiple platforms. Currently, only linux/amd64,linux/arm64 are supported.
+	DRY_RUN=true hack/docker_build_multiarch.sh
+
+container-cross-push: ; $(info $(M)...Begin to build and push.)  @ ## Build and Push.
+	hack/docker_build_multiarch.sh
+
+
+# only build/compile keepalived binary
+# https://github.com/acassen/keepalived/archive/refs/tags/v${VERSION}.tar.gz
 keepalived:
-	docker build --build-arg VERSION=${KeepalivedVersion} -t $(BUILD_IMAGE):$(TAG) -o type=docker build
-	docker create --name $(BUILD_IMAGE) $(BUILD_IMAGE):$(TAG) true
-	# docker cp semantics changed between 1.7 and 1.8, so we cp the file to cwd and rename it.
-	docker cp $(BUILD_IMAGE):/keepalived.tar.gz rootfs
-	docker rm -f $(BUILD_IMAGE)
+	DRY_RUN=true COMPILE_ONLY=true hack/docker_build.sh
 
-push: container
-	docker push $(REPO)/kube-keepalived-vip:$(TAG)
+keepalived-push:
+	COMPILE_ONLY=true hack/docker_build.sh
+
+keepalived-cross: ; $(info $(M)...Begin to build container images for multiple platforms.)  @ ## Build container images for multiple platforms. Currently, only linux/amd64,linux/arm64 are supported.
+	DRY_RUN=true COMPILE_ONLY=true hack/docker_build_multiarch.sh
+
+keepalived-cross-push: ; $(info $(M)...Begin to build and push.)  @ ## Build and Push.
+	COMPILE_ONLY=true hack/docker_build_multiarch.sh
+
 
 .PHONY: chart
 chart: chart/kube-keepalived-vip-$(CHART_VERSION).tgz
@@ -43,20 +54,20 @@ chart/kube-keepalived-vip-$(CHART_VERSION).tgz: chart-subst $(shell which helm) 
 	helm lint --strict chart/kube-keepalived-vip
 	helm package --version '$(CHART_VERSION)' -d chart chart/kube-keepalived-vip
 
-clean:
-	rm -f kube-keepalived-vip
+clean-up:
+	./hack/cleanup.sh
 
 .PHONY: fmt
 fmt:
-	@go list -f '{{if len .TestGoFiles}}"gofmt -s -l {{.Dir}}"{{end}}' ${GO_LIST_FILES} | xargs -L 1 sh -c
+	go fmt ./pkg/... ./cmd/...
 
 .PHONY: lint
 lint:
-	@go list -f '{{if len .TestGoFiles}}"golint -min_confidence=0.85 {{.Dir}}/..."{{end}}' ${GO_LIST_FILES} | xargs -L 1 sh -c
+	@hack/verify-golangci-lint.sh
 
 .PHONY: test
 test:
-	@go test -v -race -tags "$(BUILDTAGS) cgo" ${GO_LIST_FILES}
+	@go test ./pkg/... ./cmd/... -covermode=atomic -coverprofile=coverage.txt
 
 .PHONY: cover
 cover:
@@ -66,11 +77,7 @@ cover:
 
 .PHONY: vet
 vet:
-	@go vet ${GO_LIST_FILES}
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go vet ./pkg/... ./cmd/...
 
-.PHONY: dep-ensure
-dep-ensure:
-	GO111MODULE=on go mod tidy -v
-	find vendor -name '*_test.go' -delete
-	GO111MODULE=on go mod vendor
+
 

@@ -14,7 +14,7 @@
 
 FROM debian:10.13
 
-COPY build.sh /build.sh
+COPY build/keepalived/build.sh /build.sh
 ARG VERSION
 
 ENV VERSION $VERSION
